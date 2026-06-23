@@ -31,9 +31,32 @@ std::shared_ptr<ov::Node> MOE::clone_with_new_inputs(const ov::OutputVector& new
 
 void MOE::validate_and_infer_types() {
     OV_OP_SCOPE(internal_MOE_validate_and_infer_types);
-    // TODO: Add inputs validation
 
-    set_output_type(0, get_input_element_type(0), get_input_partial_shape(0));
+    NODE_VALIDATION_CHECK(this,
+                          get_input_size() >= 6,
+                          "MOE requires at least 6 inputs (hidden_states, routing_weights, "
+                          "topk_indices, and at least 3 weight tensors). Got: ",
+                          get_input_size());
+
+    const auto& hidden_et = get_input_element_type(0);
+    NODE_VALIDATION_CHECK(this,
+                          hidden_et.is_real(),
+                          "hidden_states (input 0) must have a floating-point element type. Got: ",
+                          hidden_et);
+
+    const auto& routing_et = get_input_element_type(1);
+    NODE_VALIDATION_CHECK(this,
+                          routing_et.is_real(),
+                          "routing_weights (input 1) must have a floating-point element type. Got: ",
+                          routing_et);
+
+    const auto& indices_et = get_input_element_type(2);
+    NODE_VALIDATION_CHECK(this,
+                          indices_et.is_integral_number(),
+                          "topk_indices (input 2) must have an integral element type. Got: ",
+                          indices_et);
+
+    set_output_type(0, hidden_et, get_input_partial_shape(0));
 }
 
 bool MOE::visit_attributes(ov::AttributeVisitor& visitor) {
